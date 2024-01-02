@@ -1,0 +1,10 @@
+[package]
+name = "entry_main"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+basic_lib = {path = "../basic_lib" }
+macro_lib = {path = "../macro_lib" }

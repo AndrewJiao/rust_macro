@@ -1,0 +1,7 @@
+[workspace]
+members = ["entry_main", "basic_lib", "macro_lib"]
+resolver = "1"
+
+[workspace.dependencies]
+quote = "1.0.33"
+syn = "2.0.43"
