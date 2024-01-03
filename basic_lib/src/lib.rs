@@ -1,4 +1,5 @@
 mod process_macro;
+mod declare_macro;
 
 use macro_lib::SuperTrait;
 
