@@ -18,10 +18,8 @@
 ///eg.
 #[cfg(test)]
 mod test {
-    use std::arch::x86_64::_mm256_broadcastb_epi8;
-    use std::fmt::format;
-    use std::fs::metadata;
-    use std::mem::forget;
+    use serde::{Deserialize, Serialize};
+
     ///
     /// 定义一个加法运算
     ///
@@ -173,9 +171,9 @@ mod test {
     //         internal_rule_test!(@inner $method,$($args)*)
     //     };
     // }
-    fn some_work(i:i64,j:i64)->Result<(i64,i64),String>{
-        if i+j>2 {
-            Ok((i,j))
+    fn some_work(i: i64, j: i64) -> Result<(i64, i64), String> {
+        if i + j > 2 {
+            Ok((i, j))
         } else {
             Err("error".to_owned())
         }
@@ -189,4 +187,46 @@ mod test {
         // let value1 = internal_rule_test!(some_work(0, 1));
         // println!("value1 = {:?}", value1);
     }
+
+
+    ///
+    ///note:尝试解析整个结构体
+    ///
+
+    macro_rules! analyze_struct {
+        (
+            $(#[$meta:meta])*
+            $vi:vis struct $struct_name:ident{
+                $(
+                    $(#[$filed_meta:meta])*
+                    $filed_vis:vis $filed_name:ident: $filed_type:ty
+                ),*
+            }
+        ) => {
+            $(
+                println!("meta = {:?}",stringify!($meta));
+            )*
+            println!("vis = {:?},struct name = {:?}", stringify!($vi), stringify!($struct_name));
+            $(
+                $(
+                    println!("filed_meta = {:?}",stringify!($filed_meta));
+                )*
+                println!("filed_vis = {},filed_name = {:?}, filed_type = {:?}", stringify!($filed_vis),stringify!($filed_name) ,stringify!($filed_type));
+            )*
+        };
+    }
+
+    #[test]
+    fn analyze_struct() {
+        analyze_struct!(
+            #[derive(Deserialize, Serialize, Debug, Eq, PartialEq)]
+            pub struct ToBeAnalyze {
+                #[just_test]
+                pub filed1: u32,
+                #[特殊]
+                pub filed2: String
+            }
+        );
+    }
+
 }
