@@ -1,7 +1,6 @@
-mod process_macro_demo;
-mod declare_macro;
-
 use macro_lib::SuperTrait;
+
+mod declare_macro;
 
 ///
 /// 这是一个派生宏demo，核心要点是他们必须在单独的包里定义
@@ -40,3 +39,28 @@ pub struct SomeObj {
 
 #[derive(SuperTrait, Debug)]
 pub struct SomeOtherObj(pub String);
+
+
+
+//<editor-fold desc="过程宏 ">
+#[cfg(test)]
+mod test_attribute {
+    use serde_json::json;
+    use macro_lib::get_method;
+
+    //get attr
+    #[test]
+    pub fn derive_attribute() {
+        just_t();
+
+    }
+
+    #[get_method("do_my_test")]
+    pub fn test_get() {
+
+    }
+}
+
+
+
+//</editor-fold>

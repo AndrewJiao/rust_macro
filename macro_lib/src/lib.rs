@@ -1,11 +1,11 @@
 use proc_macro::TokenStream;
+use std::ptr::write;
 
-use quote::quote;
-use syn::{DeriveInput, parse_macro_input, Token};
+use quote::{quote, ToTokens};
+use syn::{DeriveInput, Expr, ExprArray, Ident, ItemFn, parse_macro_input, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-
-mod process_macro_attr;
+use syn::token::Comma;
 
 //<editor-fold desc="派生宏模拟">
 ///
@@ -21,14 +21,6 @@ pub fn generate_trait(input: TokenStream) -> TokenStream {
 
 fn do_generate_trait(input: DeriveInput) -> TokenStream {
     let name = input.ident;
-    // let data = input.data;
-    // let fields = match &input.data {
-    //     Data::Struct(data) => { Some(&data.fields) }
-    //     Data::Enum(_) => { None }
-    //     Data::Union(data) => { Some(&data.fields) }
-    // };
-
-
     let stream = quote!(
             impl SuperTrait for  #name{
                 fn do_some_echo() {
@@ -46,17 +38,6 @@ fn do_generate_trait(input: DeriveInput) -> TokenStream {
 
 
 //<editor-fold desc="属性宏demo">
-#[cfg(test)]
-mod test_attribute {
-
-    //get attr
-    #[test]
-    pub fn derive_attribute() {}
-
-    #[]
-    fn test_get() {}
-}
-
 ///
 ///本节介绍属性宏
 /// 属性宏类似java的注解，能接受item作为参数
@@ -65,21 +46,47 @@ mod test_attribute {
 ///
 #[proc_macro_attribute]
 pub fn get_method(meta: TokenStream, token: TokenStream) -> TokenStream {
-    let stream = parse_macro_input!(meta as );
+    let args_path = parse_macro_input!(meta as ArgsPath);
+    let expr_array = ExprArray {
+        attrs: vec![],
+        bracket_token: Default::default(),
+        elems: args_path.path,
+    };
+
+    // 提取方法中的内容
+    let item_fn = parse_macro_input!(token as ItemFn);
+    let signature = &item_fn.sig;
+    let ident = signature.ident.to_token_stream();
+    let fn_token = signature.fn_token.to_token_stream();
+    let visibility = &item_fn.vis.to_token_stream();
+    eprintln!("test=={},{},{}", visibility, fn_token, ident);
+
+    let output = quote! {
+        pub fn just_t(){
+            println!("the method ={:?}, path = {:?}", #ident, #expr_array);
+        }
+    };
+    TokenStream::from(output)
 }
+
 
 ///
 /// 首先需要定义一个结构体，用于封装解析的结果
 ///
-struct Args {
-    path: String
+struct ArgsPath {
+    pub path: Punctuated<Expr, Comma>,
 }
-impl Parse for Args {
 
+
+impl Parse for ArgsPath {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let result = Punctuated::<String, Token![,]>::parse_terminated(input)?;
+        let result: Punctuated<Expr, Comma> = Punctuated::<Expr, Token![,]>::parse_terminated(input)?;
+        Ok(
+            ArgsPath {
+                path: result,
+            }
+        )
     }
-
 }
 
 //</editor-fold>
