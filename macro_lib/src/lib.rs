@@ -1,11 +1,9 @@
 use proc_macro::TokenStream;
-use std::ptr::write;
 
 use quote::{quote, ToTokens};
-use syn::{DeriveInput, Expr, ExprArray, Ident, ItemFn, parse_macro_input, Token};
+use syn::{Block, DeriveInput, Ident, Item, ItemFn, Lit, LitStr, parse2, parse_macro_input, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::token::Comma;
 
 //<editor-fold desc="派生宏模拟">
 ///
@@ -47,26 +45,26 @@ fn do_generate_trait(input: DeriveInput) -> TokenStream {
 #[proc_macro_attribute]
 pub fn get_method(meta: TokenStream, token: TokenStream) -> TokenStream {
     let args_path = parse_macro_input!(meta as ArgsPath);
-    let expr_array = ExprArray {
-        attrs: vec![],
-        bracket_token: Default::default(),
-        elems: args_path.path,
-    };
+    let expr_array = args_path.path.get(0).unwrap();
 
     // 提取方法中的内容
-    let item_fn = parse_macro_input!(token as ItemFn);
+    let mut item_fn = parse_macro_input!(token as ItemFn);
     let signature = &item_fn.sig;
-    let ident = signature.ident.to_token_stream();
-    let fn_token = signature.fn_token.to_token_stream();
-    let visibility = &item_fn.vis.to_token_stream();
-    eprintln!("test=={},{},{}", visibility, fn_token, ident);
+    let ident = &signature.ident;
+    let ident_str = ident.to_string();
+
+    let source_block = &item_fn.block;
 
     let output = quote! {
-        pub fn just_t(){
-            println!("the method ={:?}, path = {:?}", #ident, #expr_array);
+        {
+            println!(" before ");
+            #source_block
+            println!("after the method ={},path = {:?}", #ident_str, #expr_array);
         }
     };
-    TokenStream::from(output)
+    let result = parse2::<Block>(output).unwrap();
+    item_fn.block = Box::new(result);
+    item_fn.into_token_stream().into()
 }
 
 
@@ -74,16 +72,30 @@ pub fn get_method(meta: TokenStream, token: TokenStream) -> TokenStream {
 /// 首先需要定义一个结构体，用于封装解析的结果
 ///
 struct ArgsPath {
-    pub path: Punctuated<Expr, Comma>,
+    pub path: Vec<String>,
 }
 
 
 impl Parse for ArgsPath {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let result: Punctuated<Expr, Comma> = Punctuated::<Expr, Token![,]>::parse_terminated(input)?;
+
+        let result  = Punctuated::<Ident, Token![,]>::parse_terminated_with(input,
+        |sub|{
+            if sub.peek(Token![=]) {
+
+            } else {
+
+            }
+
+        })?;
+        eprintln!("result = {}", input.to_string());
+        let result  = Punctuated::<Ident, Token![,]>::parse_terminated(input)?;
+        result.iter().for_each(|e| {
+            eprintln!("item = {}", e.to_token_stream())
+        });
         Ok(
             ArgsPath {
-                path: result,
+                path:vec![]
             }
         )
     }

@@ -45,20 +45,26 @@ pub struct SomeOtherObj(pub String);
 //<editor-fold desc="过程宏 ">
 #[cfg(test)]
 mod test_attribute {
-    use serde_json::json;
     use macro_lib::get_method;
 
     //get attr
     #[test]
     pub fn derive_attribute() {
-        just_t();
-
+        test_get();
+        test_value_2();
     }
 
-    #[get_method("do_my_test")]
+    // #[get_method("/api/v1/test")]
     pub fn test_get() {
-
+        println!("just test")
     }
+
+    #[get_method(Get,POST)]
+    pub fn test_value_2() {
+        println!("just test 2")
+    }
+
+
 }
 
 
