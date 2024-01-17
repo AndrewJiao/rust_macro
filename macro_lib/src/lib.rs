@@ -1,9 +1,12 @@
 use proc_macro::TokenStream;
 
 use quote::{quote, ToTokens};
-use syn::{Block, DeriveInput, Ident, Item, ItemFn, Lit, LitStr, parse2, parse_macro_input, Token};
-use syn::parse::{Parse, ParseStream};
+use syn::{Block, DeriveInput, ItemFn, LitStr, parse2, parse_macro_input, Token};
+use syn::parse::{Parse, ParseStream, Peek};
 use syn::punctuated::Punctuated;
+use syn::token::Token;
+
+use crate::Method::{GET, POST};
 
 //<editor-fold desc="派生宏模拟">
 ///
@@ -75,29 +78,57 @@ struct ArgsPath {
     pub path: Vec<String>,
 }
 
+#[derive(Debug)]
+enum Method {
+    GET,
+    POST,
+}
 
+impl Parse for Method {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.step(|cur| {
+            if let Some((ident, sub_cur)) = cur.ident() {
+                match ident.to_string().as_str() {
+                    "GET" => {
+                        Ok((GET, sub_cur))
+                    }
+
+                    "POST" => {
+                        Ok((POST, sub_cur))
+                    }
+                    _ => { Err(cur.error("no method match")) }
+                }
+            } else {
+                Err(cur.error("err"))
+            }
+        })
+    }
+}
+
+
+
+// #[get_method(Get, method = "/api/v1")]
 impl Parse for ArgsPath {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        // let method = Method::parse(input)?;
+        // eprintln!("method1 = {:?}", method);
+        let method = Punctuated::<Option<Method>, Token![,]>::parse_separated_nonempty_with(input)?;
+        eprintln!("method2 = {:?}", method.into_iter().collect::<Vec<_>>());
+        let path = Punctuated::<Option<LitStr>, Token![=]>::parse_terminated_with
+                (input
+                 , |e| {
+                    eprintln!("equal = {}", e);
+                    if LitStr::peek(e.cursor()) {
+                        Ok(Some(e.parse()?))
+                    } else {
+                        Ok(None)
+                    }
+                })?;
+        eprintln!("method3 = {:?}", path.into_iter().filter_map(|e| e).map(|e| e.to_token_stream()).collect::<Vec<_>>());
 
-        let result  = Punctuated::<Ident, Token![,]>::parse_terminated_with(input,
-        |sub|{
-            if sub.peek(Token![=]) {
-
-            } else {
-
-            }
-
-        })?;
-        eprintln!("result = {}", input.to_string());
-        let result  = Punctuated::<Ident, Token![,]>::parse_terminated(input)?;
-        result.iter().for_each(|e| {
-            eprintln!("item = {}", e.to_token_stream())
-        });
-        Ok(
-            ArgsPath {
-                path:vec![]
-            }
-        )
+        Ok(ArgsPath {
+            path: vec![],
+        })
     }
 }
 

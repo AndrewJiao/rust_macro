@@ -59,7 +59,7 @@ mod test_attribute {
         println!("just test")
     }
 
-    #[get_method(Get,POST)]
+    #[get_method(GET, method = "/api/v1")]
     pub fn test_value_2() {
         println!("just test 2")
     }
