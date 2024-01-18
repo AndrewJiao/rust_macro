@@ -54,12 +54,12 @@ mod test_attribute {
         test_value_2();
     }
 
-    // #[get_method("/api/v1/test")]
+    #[get_method(method = "POST", path = "/api/v1/test")]
     pub fn test_get() {
         println!("just test")
     }
 
-    #[get_method(GET, method = "/api/v1")]
+    #[get_method(method = "GET", path = "/api/v1")]
     pub fn test_value_2() {
         println!("just test 2")
     }

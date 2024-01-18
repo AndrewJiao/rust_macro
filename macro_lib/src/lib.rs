@@ -1,10 +1,12 @@
 use proc_macro::TokenStream;
+use std::cmp::max_by_key;
+use std::collections::HashMap;
+use std::fmt::Debug;
 
 use quote::{quote, ToTokens};
-use syn::{Block, DeriveInput, ItemFn, LitStr, parse2, parse_macro_input, Token};
+use syn::{Block, DeriveInput, Ident, ItemFn, LitStr, parse, parse2, parse_macro_input, Token};
 use syn::parse::{Parse, ParseStream, Peek};
 use syn::punctuated::Punctuated;
-use syn::token::Token;
 
 use crate::Method::{GET, POST};
 
@@ -47,26 +49,24 @@ fn do_generate_trait(input: DeriveInput) -> TokenStream {
 ///
 #[proc_macro_attribute]
 pub fn get_method(meta: TokenStream, token: TokenStream) -> TokenStream {
-    let args_path = parse_macro_input!(meta as ArgsPath);
-    let expr_array = args_path.path.get(0).unwrap();
-
-    // 提取方法中的内容
+    let args = parse_macro_input!(meta as Args);
     let mut item_fn = parse_macro_input!(token as ItemFn);
     let signature = &item_fn.sig;
-    let ident = &signature.ident;
-    let ident_str = ident.to_string();
+    let ident = &signature.ident.to_string();
+    let origin_block = &item_fn.block;
 
-    let source_block = &item_fn.block;
+    let method = format!("{:?}",args.method);;
+    let path = args.path;
 
-    let output = quote! {
-        {
-            println!(" before ");
-            #source_block
-            println!("after the method ={},path = {:?}", #ident_str, #expr_array);
-        }
+
+    let new_block = quote! {
+    {
+        println!("before fn for name {}", #ident);
+        #origin_block
+        println!("after fn for name {}, and method = {} and path = {}", #ident, #method, #path)
+    }
     };
-    let result = parse2::<Block>(output).unwrap();
-    item_fn.block = Box::new(result);
+    item_fn.block = Box::new(parse2(new_block).unwrap());
     item_fn.into_token_stream().into()
 }
 
@@ -74,9 +74,19 @@ pub fn get_method(meta: TokenStream, token: TokenStream) -> TokenStream {
 ///
 /// 首先需要定义一个结构体，用于封装解析的结果
 ///
-struct ArgsPath {
-    pub path: Vec<String>,
+struct Args {
+    path: String,
+    method: Method,
 }
+
+impl Args {
+    pub fn new(mut map: HashMap<String, String>) -> Self {
+        let path = map.remove("path").unwrap();
+        let method = map.remove("method").unwrap().into();
+        Self { path, method }
+    }
+}
+
 
 #[derive(Debug)]
 enum Method {
@@ -84,51 +94,37 @@ enum Method {
     POST,
 }
 
-impl Parse for Method {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.step(|cur| {
-            if let Some((ident, sub_cur)) = cur.ident() {
-                match ident.to_string().as_str() {
-                    "GET" => {
-                        Ok((GET, sub_cur))
-                    }
-
-                    "POST" => {
-                        Ok((POST, sub_cur))
-                    }
-                    _ => { Err(cur.error("no method match")) }
-                }
-            } else {
-                Err(cur.error("err"))
-            }
-        })
+impl From<String> for Method {
+    fn from(value: String) -> Self {
+        return match value.as_ref() {
+            "GET" => GET,
+            "POST" => POST,
+            _ => { GET }
+        };
     }
 }
 
 
-
 // #[get_method(Get, method = "/api/v1")]
-impl Parse for ArgsPath {
+impl Parse for Args {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        // let method = Method::parse(input)?;
-        // eprintln!("method1 = {:?}", method);
-        let method = Punctuated::<Option<Method>, Token![,]>::parse_separated_nonempty_with(input)?;
-        eprintln!("method2 = {:?}", method.into_iter().collect::<Vec<_>>());
-        let path = Punctuated::<Option<LitStr>, Token![=]>::parse_terminated_with
-                (input
-                 , |e| {
-                    eprintln!("equal = {}", e);
-                    if LitStr::peek(e.cursor()) {
-                        Ok(Some(e.parse()?))
-                    } else {
-                        Ok(None)
-                    }
-                })?;
-        eprintln!("method3 = {:?}", path.into_iter().filter_map(|e| e).map(|e| e.to_token_stream()).collect::<Vec<_>>());
+        eprintln!("star {}", input.clone());
+        let result = Punctuated::<(String, String), Token![,]>::parse_terminated_with
+            (input
+             , |e| {
+                eprintln!("e_stream = {}", e);
+                let key: Ident = e.parse()?;
+                e.parse::<Token![=]>()?;
+                let str: LitStr = e.parse()?;
+                Ok(
+                    (
+                        key.to_string(),
+                        str.to_token_stream().to_string(),
+                    )
+                )
+            })?.into_iter().collect::<HashMap<String, String>>();
 
-        Ok(ArgsPath {
-            path: vec![],
-        })
+        Ok(Args::new(result))
     }
 }
 
