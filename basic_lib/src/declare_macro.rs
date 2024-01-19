@@ -18,6 +18,8 @@
 ///eg.
 #[cfg(test)]
 mod test {
+
+    #[cfg(feature = "test")]
     use serde::{Deserialize, Serialize};
 
     ///
@@ -64,6 +66,7 @@ mod test {
     }
 
 
+    #[cfg(feature = "test")]
     macro_rules! type_meta {
         ($arg:meta) => {$arg};
     }
@@ -82,6 +85,7 @@ mod test {
     }
 
 
+    #[cfg(feature = "test")]
     macro_rules! type_tt {
         ($arg:tt) => {$arg};
     }
@@ -92,6 +96,7 @@ mod test {
     /// note:token之间作为参数传递可以不用，号分割,编译器可以自动识别
     /// 宏可以递归执行
     ///
+    #[cfg(feature = "test")]
     macro_rules! my_multi_add {
         //匹配单个
         ($a:expr) => {
@@ -109,6 +114,7 @@ mod test {
         };
 
     }
+    #[cfg(feature = "test")]
     #[test]
     fn about_type_tt() {
         let a = type_tt!(A);
@@ -171,13 +177,13 @@ mod test {
     //         internal_rule_test!(@inner $method,$($args)*)
     //     };
     // }
-    fn some_work(i: i64, j: i64) -> Result<(i64, i64), String> {
-        if i + j > 2 {
-            Ok((i, j))
-        } else {
-            Err("error".to_owned())
-        }
-    }
+    // fn some_work(i: i64, j: i64) -> Result<(i64, i64), String> {
+    //     if i + j > 2 {
+    //         Ok((i, j))
+    //     } else {
+    //         Err("error".to_owned())
+    //     }
+    // }
 
     #[test]
     fn internal_rule() {

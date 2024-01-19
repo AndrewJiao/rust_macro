@@ -1,11 +1,10 @@
-use basic_lib::SuperTrait;
 
 fn main() {}
 
 #[cfg(test)]
 mod test_model {
+    use basic_lib::process_macro_derive::{SomeObj, SomeOtherObj, SuperTrait};
     //注意，派生宏的trait派生定义和trait都需要引入 如这个SuperTrait
-    use basic_lib::{SomeObj, SomeOtherObj, SuperTrait};
     use macro_lib::SuperTrait;
 
     #[test]
